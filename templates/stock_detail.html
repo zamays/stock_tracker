@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}{{ ticker }} - Stock Detail{% endblock %}
+
+{% block content %}
+<div class="card">
+    <a href="/" class="btn">← Back to Dashboard</a>
+    <h2>{{ ticker }} - P/E Ratio History</h2>
+    
+    {% if chart_data %}
+    <div style="text-align: center; margin: 30px 0;">
+        <img src="data:image/png;base64,{{ chart_data }}" alt="{{ ticker }} P/E Ratio Chart" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+    </div>
+    {% endif %}
+    
+    <div class="alert alert-info">
+        <strong>Current Threshold:</strong> {{ threshold }}<br>
+        {% if historical_data %}
+            <strong>Data Points:</strong> {{ historical_data|length }}<br>
+            {% set latest = historical_data[-1] %}
+            {% if latest.pe_ratio %}
+                <strong>Latest P/E Ratio:</strong> 
+                <span class="{% if latest.pe_ratio < threshold %}low-pe{% else %}high-pe{% endif %}">
+                    {{ "%.2f"|format(latest.pe_ratio) }}
+                </span>
+                {% if latest.pe_ratio < threshold %}
+                    <br><strong style="color: #27ae60;">⚠️ Below threshold - potential investment opportunity!</strong>
+                {% endif %}
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+{% if historical_data %}
+<div class="card">
+    <h3>Historical Data</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>P/E Ratio</th>
+                <th>Price</th>
+                <th>Market Cap</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stock in historical_data|reverse %}
+            <tr>
+                <td>{{ stock.timestamp[:19] if stock.timestamp else 'N/A' }}</td>
+                <td>
+                    {% if stock.pe_ratio %}
+                        <span class="{% if stock.pe_ratio < threshold %}low-pe{% else %}high-pe{% endif %}">
+                            {{ "%.2f"|format(stock.pe_ratio) }}
+                        </span>
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td>
+                    {% if stock.price %}
+                        ${{ "%.2f"|format(stock.price) }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td>
+                    {% if stock.market_cap %}
+                        ${{ "%.2fB"|format(stock.market_cap / 1000000000) }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td>
+                    {% if stock.pe_ratio and stock.pe_ratio < threshold %}
+                        <span class="low-pe">Below Threshold ⚠️</span>
+                    {% elif stock.pe_ratio %}
+                        <span class="high-pe">Above Threshold</span>
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card">
+    <p>No historical data available for {{ ticker }}. Go back to the dashboard and update stock data.</p>
+</div>
+{% endif %}
+{% endblock %}
