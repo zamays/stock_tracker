@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Stock Tracker - Dashboard{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Stock Dashboard</h2>
+    <p>Monitoring {{ tracked_tickers|length }} major stocks with P/E ratio threshold: <strong>{{ threshold }}</strong></p>
+    
+    <div class="alert alert-info">
+        <strong>💡 Tip:</strong> Stocks with P/E ratios below {{ threshold }} are highlighted in green and may represent good investment opportunities during market downturns.
+    </div>
+    
+    <form method="POST" action="/update" onsubmit="return updateStocks(event)">
+        <div class="form-group">
+            <label for="threshold">P/E Ratio Threshold:</label>
+            <input type="number" id="threshold" name="threshold" step="0.1" value="{{ threshold }}" style="width: 200px;">
+        </div>
+        <button type="submit" class="btn btn-success">🔄 Update Stock Data</button>
+    </form>
+    
+    <div id="update-message"></div>
+</div>
+
+<div class="card">
+    <h2>Latest Stock Data</h2>
+    
+    {% if stocks %}
+    <div class="stock-grid">
+        {% for ticker in tracked_tickers %}
+            {% if ticker in stocks %}
+                {% set stock = stocks[ticker] %}
+                <div class="stock-card">
+                    <h3>{{ ticker }}</h3>
+                    <div class="stock-info">
+                        <strong>P/E Ratio:</strong> 
+                        {% if stock.pe_ratio %}
+                            <span class="{% if stock.pe_ratio < threshold %}low-pe{% else %}high-pe{% endif %}">
+                                {{ "%.2f"|format(stock.pe_ratio) }}
+                            </span>
+                            {% if stock.pe_ratio < threshold %}
+                                <span style="color: #27ae60;">⚠️</span>
+                            {% endif %}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                    <div class="stock-info">
+                        <strong>Price:</strong> 
+                        {% if stock.price %}
+                            ${{ "%.2f"|format(stock.price) }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                    <div class="stock-info">
+                        <strong>Market Cap:</strong> 
+                        {% if stock.market_cap %}
+                            ${{ "%.2fB"|format(stock.market_cap / 1000000000) }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                    <div class="stock-info">
+                        <strong>Updated:</strong> 
+                        {% if stock.timestamp %}
+                            {{ stock.timestamp[:10] }}
+                        {% else %}
+                            Never
+                        {% endif %}
+                    </div>
+                    <a href="/stock/{{ ticker }}" class="btn" style="margin-top: 10px; width: 100%; text-align: center;">
+                        View Chart
+                    </a>
+                </div>
+            {% else %}
+                <div class="stock-card">
+                    <h3>{{ ticker }}</h3>
+                    <div class="stock-info">
+                        <em>No data available. Click "Update Stock Data" to fetch.</em>
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>No stock data available. Click "Update Stock Data" to fetch the latest information.</p>
+    {% endif %}
+</div>
+
+<script>
+    function updateStocks(event) {
+        event.preventDefault();
+        
+        const form = event.target;
+        const formData = new FormData(form);
+        const messageDiv = document.getElementById('update-message');
+        const button = form.querySelector('button[type="submit"]');
+        
+        button.disabled = true;
+        button.textContent = '⏳ Updating...';
+        messageDiv.innerHTML = '<div class="alert alert-info">Fetching stock data... This may take a moment.</div>';
+        
+        fetch('/update', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                messageDiv.innerHTML = '<div class="alert alert-success">' + data.message + '</div>';
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                messageDiv.innerHTML = '<div class="alert alert-danger">Error updating stocks</div>';
+                button.disabled = false;
+                button.textContent = '🔄 Update Stock Data';
+            }
+        })
+        .catch(error => {
+            messageDiv.innerHTML = '<div class="alert alert-danger">Error: ' + error.message + '</div>';
+            button.disabled = false;
+            button.textContent = '🔄 Update Stock Data';
+        });
+        
+        return false;
+    }
+</script>
+{% endblock %}
