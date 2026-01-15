@@ -4,7 +4,7 @@ This is useful for testing the application when Yahoo Finance API is not accessi
 """
 from app import app
 from models import db, Stock
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import random
 
 def create_sample_data():
@@ -62,7 +62,7 @@ def create_sample_data():
         
         # Create historical data (last 30 days)
         for i in range(30):
-            timestamp = datetime.utcnow() - timedelta(days=29-i)
+            timestamp = datetime.now(timezone.utc) - timedelta(days=29-i)
             
             for ticker in tickers:
                 # Add some variation to the P/E ratio

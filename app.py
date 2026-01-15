@@ -7,7 +7,7 @@ import base64
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 def create_app(config_class=Config):
@@ -82,7 +82,7 @@ def update_stocks():
         }), 400
     
     print(f"\n{'='*60}")
-    print(f"Updating stock data at {datetime.utcnow()}")
+    print(f"Updating stock data at {datetime.now(timezone.utc)}")
     print(f"P/E Ratio threshold: {threshold}")
     print(f"{'='*60}\n")
     
@@ -130,9 +130,17 @@ def generate_pe_chart(ticker, historical_data, threshold):
     if not historical_data:
         return None
     
-    # Extract data for plotting
-    dates = [datetime.fromisoformat(d['timestamp']) for d in historical_data if d['pe_ratio'] is not None]
-    pe_ratios = [d['pe_ratio'] for d in historical_data if d['pe_ratio'] is not None]
+    # Extract data for plotting with error handling
+    dates = []
+    pe_ratios = []
+    for d in historical_data:
+        if d['pe_ratio'] is not None and d['timestamp']:
+            try:
+                dates.append(datetime.fromisoformat(d['timestamp']))
+                pe_ratios.append(d['pe_ratio'])
+            except (ValueError, TypeError):
+                # Skip invalid timestamps
+                continue
     
     if not dates or not pe_ratios:
         return None

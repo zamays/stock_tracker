@@ -1,5 +1,5 @@
 import yfinance as yf
-from datetime import datetime
+from datetime import datetime, timezone
 from models import db, Stock
 from config import Config
 
@@ -40,7 +40,7 @@ class StockService:
             pe_ratio=stock_data['pe_ratio'],
             price=stock_data['price'],
             market_cap=stock_data['market_cap'],
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         
         db.session.add(stock)
