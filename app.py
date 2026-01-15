@@ -42,6 +42,14 @@ def index():
 @app.route('/stock/<ticker>')
 def stock_detail(ticker):
     """Detail page for a specific stock showing P/E ratio over time."""
+    # Validate ticker symbol (alphanumeric only, max 10 chars)
+    if not ticker.isalnum() or len(ticker) > 10:
+        return "Invalid ticker symbol", 400
+    
+    # Check if ticker is in our tracked list
+    if ticker not in app.config['STOCKS_TO_TRACK']:
+        return "Ticker not found", 404
+    
     historical_data = StockService.get_historical_pe_data(ticker)
     threshold = app.config['PE_THRESHOLD']
     
@@ -58,7 +66,20 @@ def stock_detail(ticker):
 @app.route('/update', methods=['POST'])
 def update_stocks():
     """Update stock data for all tracked tickers."""
-    threshold = float(request.form.get('threshold', app.config['PE_THRESHOLD']))
+    # Validate and sanitize threshold input
+    try:
+        threshold = float(request.form.get('threshold', app.config['PE_THRESHOLD']))
+        # Ensure threshold is within reasonable bounds
+        if threshold <= 0 or threshold > 1000:
+            return jsonify({
+                'success': False,
+                'message': 'Threshold must be between 0 and 1000'
+            }), 400
+    except (ValueError, TypeError):
+        return jsonify({
+            'success': False,
+            'message': 'Invalid threshold value'
+        }), 400
     
     print(f"\n{'='*60}")
     print(f"Updating stock data at {datetime.utcnow()}")
@@ -88,7 +109,18 @@ def api_stocks():
 @app.route('/api/stock/<ticker>/history')
 def api_stock_history(ticker):
     """API endpoint to get historical data for a stock."""
+    # Validate ticker symbol
+    if not ticker.isalnum() or len(ticker) > 10:
+        return jsonify({'error': 'Invalid ticker symbol'}), 400
+    
+    if ticker not in app.config['STOCKS_TO_TRACK']:
+        return jsonify({'error': 'Ticker not found'}), 404
+    
     limit = request.args.get('limit', 100, type=int)
+    # Validate limit to prevent excessive data retrieval
+    if limit < 1 or limit > 1000:
+        return jsonify({'error': 'Limit must be between 1 and 1000'}), 400
+    
     historical_data = StockService.get_historical_pe_data(ticker, limit)
     return jsonify(historical_data)
 

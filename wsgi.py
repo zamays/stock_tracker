@@ -2,14 +2,14 @@
 WSGI configuration for PythonAnywhere deployment.
 
 This file is used to configure the application for deployment on PythonAnywhere.
-Update the path in the sys.path.insert line to match your actual directory.
+Set the STOCK_TRACKER_PATH environment variable or update the default path.
 """
 import sys
 import os
 
 # Add your project directory to the sys.path
-# IMPORTANT: Update this path to match your PythonAnywhere directory
-project_home = '/home/yourusername/stock_tracker'
+# Set via environment variable or use default
+project_home = os.environ.get('STOCK_TRACKER_PATH', '/home/yourusername/stock_tracker')
 if project_home not in sys.path:
     sys.path.insert(0, project_home)
 
