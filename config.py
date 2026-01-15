@@ -16,7 +16,12 @@ class Config:
     DB_HOST = os.environ.get('DB_HOST', 'localhost')
     DB_NAME = os.environ.get('DB_NAME', 'stock_tracker')
     
-    SQLALCHEMY_DATABASE_URI = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}'
+    # Use SQLite for local development if USE_SQLITE is set
+    if os.environ.get('USE_SQLITE', 'False').lower() == 'true':
+        SQLALCHEMY_DATABASE_URI = 'sqlite:///stock_tracker.db'
+    else:
+        SQLALCHEMY_DATABASE_URI = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}'
+    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Stock tracker settings
