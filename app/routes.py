@@ -28,6 +28,32 @@ def init_app(app):
             tracked_tickers=current_app.config['STOCKS_TO_TRACK']
         )
 
+    @app.route('/stocks')
+    def stocks():
+        """Stock Explorer page showing NYSE-listed stocks with search and pagination."""
+        page = request.args.get('page', 1, type=int)
+        per_page = 20
+        query = request.args.get('q', '').strip()
+        
+        # Get stocks (either search results or popular stocks)
+        if query:
+            result = StockService.search_stocks(query, page, per_page)
+        else:
+            result = StockService.get_popular_stocks(page, per_page)
+        
+        threshold = current_app.config['PE_THRESHOLD']
+        
+        return render_template(
+            'stocks.html',
+            stocks=result['stocks'],
+            page=result['page'],
+            per_page=result['per_page'],
+            total=result['total'],
+            pages=result['pages'],
+            query=query,
+            threshold=threshold
+        )
+
     @app.route('/stock/<ticker>')
     def stock_detail(ticker):
         """Detail page for a specific stock showing P/E ratio over time."""
