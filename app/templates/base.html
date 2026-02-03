@@ -264,6 +264,26 @@
         <p>&copy; 2025 Stock Tracker. For educational purposes only. Not financial advice.</p>
     </footer>
     
+    <script>
+        // Shared function to toggle favorite status for a stock
+        async function toggleFavorite(ticker) {
+            try {
+                const response = await fetch(`/api/stock/${ticker}/favorite`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    // Reload page to show updated favorites
+                    window.location.reload();
+                } else {
+                    console.error('Failed to toggle favorite');
+                }
+            } catch (error) {
+                console.error('Error toggling favorite:', error);
+            }
+        }
+    </script>
+    
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -15,6 +15,9 @@ class StockService:
     # Rate limiting: track last request time
     _last_request_time = 0
     _min_request_interval = 0.5  # 2 requests per second max
+    
+    # Maximum ticker symbol length for Yahoo Finance search
+    MAX_TICKER_LENGTH = 10
 
     # Popular NYSE stocks to start with
     POPULAR_NYSE_STOCKS = [
@@ -234,7 +237,7 @@ class StockService:
         total = StockCache.query.filter(search_filter).count()
         
         # If no results found in cache, try to fetch from Yahoo Finance
-        if total == 0 and len(query) <= 10:
+        if total == 0 and len(query) <= StockService.MAX_TICKER_LENGTH:
             # Attempt to fetch from Yahoo Finance
             ticker_upper = query.upper()
             stock_info = StockService._fetch_stock_info(ticker_upper)

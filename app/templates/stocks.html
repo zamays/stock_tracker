@@ -126,23 +126,4 @@
     <p>No stocks found{% if query %} matching "{{ query }}"{% endif %}.</p>
     {% endif %}
 </div>
-
-<script>
-    async function toggleFavorite(ticker) {
-        try {
-            const response = await fetch(`/api/stock/${ticker}/favorite`, {
-                method: 'POST'
-            });
-
-            if (response.ok) {
-                // Reload page to show updated favorites
-                window.location.reload();
-            } else {
-                console.error('Failed to toggle favorite');
-            }
-        } catch (error) {
-            console.error('Error toggling favorite:', error);
-        }
-    }
-</script>
 {% endblock %}
