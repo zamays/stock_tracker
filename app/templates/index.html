@@ -22,6 +22,65 @@
     <div id="update-message"></div>
 </div>
 
+{% if favorite_stocks %}
+<div class="card">
+    <h2>⭐ Favorite Stocks</h2>
+    
+    <div class="stock-grid">
+        {% for stock in favorite_stocks %}
+            <div class="stock-card">
+                <h3>
+                    {{ stock.ticker }}
+                    <button onclick="toggleFavorite('{{ stock.ticker }}')" class="favorite-btn" title="Remove from favorites">
+                        ⭐
+                    </button>
+                </h3>
+                <div class="stock-info">
+                    <strong>Company:</strong> {{ stock.company_name or 'N/A' }}
+                </div>
+                <div class="stock-info">
+                    <strong>P/E Ratio:</strong> 
+                    {% if stock.pe_ratio %}
+                        <span class="{% if stock.pe_ratio < threshold %}low-pe{% else %}high-pe{% endif %}">
+                            {{ "%.2f"|format(stock.pe_ratio) }}
+                        </span>
+                        {% if stock.pe_ratio < threshold %}
+                            <span style="color: #27ae60;">⚠️</span>
+                        {% endif %}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+                <div class="stock-info">
+                    <strong>Price:</strong> 
+                    {% if stock.price %}
+                        ${{ "%.2f"|format(stock.price) }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+                <div class="stock-info">
+                    <strong>Market Cap:</strong> 
+                    {% if stock.market_cap %}
+                        ${{ "%.2fB"|format(stock.market_cap / 1000000000) }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+                <div class="stock-info">
+                    <strong>Updated:</strong> 
+                    {% if stock.last_updated %}
+                        {{ stock.last_updated[:10] }}
+                    {% else %}
+                        Never
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <div class="card">
     <h2>Latest Stock Data</h2>
     
@@ -133,6 +192,23 @@
         }
 
         return false;
+    }
+
+    async function toggleFavorite(ticker) {
+        try {
+            const response = await fetch(`/api/stock/${ticker}/favorite`, {
+                method: 'POST'
+            });
+
+            if (response.ok) {
+                // Reload page to show updated favorites
+                window.location.reload();
+            } else {
+                console.error('Failed to toggle favorite');
+            }
+        } catch (error) {
+            console.error('Error toggling favorite:', error);
+        }
     }
 </script>
 {% endblock %}

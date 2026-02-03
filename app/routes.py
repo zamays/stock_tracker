@@ -19,11 +19,13 @@ def init_app(app):
     def index():
         """Main dashboard showing all tracked stocks."""
         latest_stocks = StockService.get_latest_stocks()
+        favorite_stocks = StockService.get_favorite_stocks()
         threshold = current_app.config['PE_THRESHOLD']
 
         return render_template(
             'index.html',
             stocks=latest_stocks,
+            favorite_stocks=favorite_stocks,
             threshold=threshold,
             tracked_tickers=current_app.config['STOCKS_TO_TRACK']
         )
@@ -143,6 +145,20 @@ def init_app(app):
 
         historical_data = StockService.get_historical_pe_data(ticker, limit)
         return jsonify(historical_data)
+
+    @app.route('/api/stock/<ticker>/favorite', methods=['POST'])
+    def toggle_favorite(ticker):
+        """API endpoint to toggle favorite status for a stock."""
+        # Validate ticker symbol
+        if not ticker.isalnum() or len(ticker) > 10:
+            return jsonify({'error': 'Invalid ticker symbol'}), 400
+
+        result = StockService.toggle_favorite(ticker.upper())
+        
+        if result['success']:
+            return jsonify(result)
+        else:
+            return jsonify(result), 404
 
 
 def generate_pe_chart(ticker, historical_data, threshold):
