@@ -7,7 +7,7 @@ A web application for tracking stock P/E ratios over time to identify investment
 - 📊 Track P/E ratios for major stocks (AAPL, MSFT, GOOGL, AMZN, META, TSLA, NVDA, JPM, V, WMT)
 - 📈 Visualize P/E ratio trends over time with interactive charts
 - ⚠️ Terminal alerts when P/E ratios fall below user-defined threshold (default: 20)
-- 💾 MySQL database backend for historical data storage
+- 💾 SQLite (local) or MySQL database backend for historical data storage
 - 🌐 Web interface for easy monitoring
 - ☁️ Ready for deployment on PythonAnywhere
 
@@ -21,31 +21,52 @@ git clone https://github.com/zamays/stock_tracker.git
 cd stock_tracker
 ```
 
-2. Install dependencies:
+2. Create and activate a virtual environment:
 ```bash
-pip install -r requirements.txt
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
 
-3. Set up MySQL database:
+3. Install dependencies:
 ```bash
-# Create a database named 'stock_tracker'
-mysql -u root -p
-CREATE DATABASE stock_tracker;
-exit;
+pip install -r requirements.txt
 ```
 
 4. Configure environment variables:
 ```bash
 cp .env.example .env
-# Edit .env with your database credentials
 ```
 
-5. Run the application:
+5. Set up database (choose one):
+
+   **Option A: SQLite (recommended for local development)**
+
+   Edit `.env` and set:
+
+   ```bash
+   USE_SQLITE=True
+   ```
+
+   No additional setup required - the database file is created automatically.
+
+   **Option B: MySQL**
+
+   ```bash
+   # Create a database named 'stock_tracker'
+   mysql -u root -p
+   CREATE DATABASE stock_tracker;
+   exit;
+   ```
+
+   Then edit `.env` with your MySQL credentials (`DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_NAME`).
+
+6. Run the application:
+
 ```bash
 python app.py
 ```
 
-6. Open your browser and navigate to `http://localhost:5000`
+7. Open your browser and navigate to `http://localhost:5000`
 
 ## PythonAnywhere Deployment
 

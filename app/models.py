@@ -1,4 +1,7 @@
-from datetime import datetime
+"""Database models."""
+
+from datetime import datetime, timezone
+
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
@@ -6,19 +9,24 @@ db = SQLAlchemy()
 
 class Stock(db.Model):
     """Model for storing stock information and P/E ratios."""
-    
+
     __tablename__ = 'stocks'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     ticker = db.Column(db.String(10), nullable=False, index=True)
     pe_ratio = db.Column(db.Float, nullable=True)
     price = db.Column(db.Float, nullable=True)
     market_cap = db.Column(db.Float, nullable=True)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
-    
+    timestamp = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True
+    )
+
     def __repr__(self):
         return f'<Stock {self.ticker} PE:{self.pe_ratio} at {self.timestamp}>'
-    
+
     def to_dict(self):
         """Convert stock data to dictionary."""
         return {

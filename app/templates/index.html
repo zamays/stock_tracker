@@ -14,7 +14,7 @@
     <form method="POST" action="/update" onsubmit="return updateStocks(event)">
         <div class="form-group">
             <label for="threshold">P/E Ratio Threshold:</label>
-            <input type="number" id="threshold" name="threshold" step="0.1" value="{{ threshold }}" style="width: 200px;">
+            <input type="text" id="threshold" name="threshold" pattern="[0-9]*\.?[0-9]+" value="{{ '%.1f'|format(threshold) }}" style="width: 200px;" inputmode="decimal">
         </div>
         <button type="submit" class="btn btn-success">🔄 Update Stock Data</button>
     </form>
@@ -89,41 +89,49 @@
 </div>
 
 <script>
-    function updateStocks(event) {
+    async function updateStocks(event) {
         event.preventDefault();
-        
+
         const form = event.target;
         const formData = new FormData(form);
         const messageDiv = document.getElementById('update-message');
         const button = form.querySelector('button[type="submit"]');
-        
+
         button.disabled = true;
         button.textContent = '⏳ Updating...';
         messageDiv.innerHTML = '<div class="alert alert-info">Fetching stock data... This may take a moment.</div>';
-        
-        fetch('/update', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
+
+        try {
+            const response = await fetch('/update', {
+                method: 'POST',
+                body: formData
+            });
+
+            // Check if response is OK before parsing JSON
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error('Server error: ' + response.status + ' - ' + text);
+            }
+
+            const data = await response.json();
+
             if (data.success) {
                 messageDiv.innerHTML = '<div class="alert alert-success">' + data.message + '</div>';
                 setTimeout(() => {
                     window.location.reload();
                 }, 2000);
             } else {
-                messageDiv.innerHTML = '<div class="alert alert-danger">Error updating stocks</div>';
+                messageDiv.innerHTML = '<div class="alert alert-danger">Error: ' + (data.message || 'Unknown error') + '</div>';
                 button.disabled = false;
                 button.textContent = '🔄 Update Stock Data';
             }
-        })
-        .catch(error => {
+        } catch (error) {
+            console.error('Update error:', error);
             messageDiv.innerHTML = '<div class="alert alert-danger">Error: ' + error.message + '</div>';
             button.disabled = false;
             button.textContent = '🔄 Update Stock Data';
-        });
-        
+        }
+
         return false;
     }
 </script>
