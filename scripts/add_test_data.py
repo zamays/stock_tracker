@@ -33,6 +33,7 @@ def populate_test_data():
             stock.price = round(random.uniform(20, 500), 2)
             stock.pe_ratio = round(random.uniform(8, 45), 2)
             stock.market_cap = round(random.uniform(10, 3000) * 1000000000, 2)
+            # Use timezone-aware datetime for consistency
             stock.last_updated = datetime.now(timezone.utc)
         
         db.session.commit()

@@ -153,6 +153,19 @@ class StockService:
         return cached_stock
 
     @staticmethod
+    def _is_stock_data_stale(cached_stock):
+        """Check if stock data is stale (older than 1 hour).
+        
+        Args:
+            cached_stock: StockCache instance
+            
+        Returns:
+            True if data is stale, False otherwise
+        """
+        time_since_update = datetime.now(timezone.utc) - cached_stock.last_updated.replace(tzinfo=timezone.utc)
+        return time_since_update > timedelta(hours=1)
+
+    @staticmethod
     def get_popular_stocks(page=1, per_page=20, fetch_data=False):
         """Get all NYSE stocks with pagination.
         
@@ -173,13 +186,11 @@ class StockService:
         stocks = []
         for cached_stock in stocks_query.items:
             # If fetch_data is True and data is stale, update it
-            if fetch_data:
-                time_since_update = datetime.now(timezone.utc) - cached_stock.last_updated.replace(tzinfo=timezone.utc)
-                if time_since_update > timedelta(hours=1):
-                    # Update the stock data
-                    StockService._update_stock_cache(cached_stock.ticker)
-                    # Refresh the object from database
-                    db.session.refresh(cached_stock)
+            if fetch_data and StockService._is_stock_data_stale(cached_stock):
+                # Update the stock data
+                StockService._update_stock_cache(cached_stock.ticker)
+                # Refresh the object from database
+                db.session.refresh(cached_stock)
             
             stocks.append(cached_stock.to_dict())
         
@@ -229,13 +240,11 @@ class StockService:
         stocks = []
         for cached_stock in stocks_query.items:
             # If fetch_data is True and data is stale, update it
-            if fetch_data:
-                time_since_update = datetime.now(timezone.utc) - cached_stock.last_updated.replace(tzinfo=timezone.utc)
-                if time_since_update > timedelta(hours=1):
-                    # Update the stock data
-                    StockService._update_stock_cache(cached_stock.ticker)
-                    # Refresh the object from database
-                    db.session.refresh(cached_stock)
+            if fetch_data and StockService._is_stock_data_stale(cached_stock):
+                # Update the stock data
+                StockService._update_stock_cache(cached_stock.ticker)
+                # Refresh the object from database
+                db.session.refresh(cached_stock)
             
             stocks.append(cached_stock.to_dict())
         
