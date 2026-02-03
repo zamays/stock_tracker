@@ -35,11 +35,12 @@ def init_app(app):
         per_page = 20
         query = request.args.get('q', '').strip()
         
-        # Get stocks (either search results or popular stocks)
+        # Get stocks (either search results or all stocks)
+        # fetch_data=True will fetch current data for stocks on the page
         if query:
-            result = StockService.search_stocks(query, page, per_page)
+            result = StockService.search_stocks(query, page, per_page, fetch_data=True)
         else:
-            result = StockService.get_popular_stocks(page, per_page)
+            result = StockService.get_popular_stocks(page, per_page, fetch_data=True)
         
         threshold = current_app.config['PE_THRESHOLD']
         

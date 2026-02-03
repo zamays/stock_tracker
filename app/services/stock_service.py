@@ -153,33 +153,38 @@ class StockService:
         return cached_stock
 
     @staticmethod
-    def get_popular_stocks(page=1, per_page=20):
-        """Get popular NYSE stocks with pagination.
+    def get_popular_stocks(page=1, per_page=20, fetch_data=False):
+        """Get all NYSE stocks with pagination.
         
         Args:
             page: Page number (1-indexed)
             per_page: Number of stocks per page
+            fetch_data: If True, fetch current data for displayed stocks
             
         Returns:
             Dictionary with 'stocks', 'total', 'page', 'per_page', 'pages'
         """
-        # Ensure all popular stocks are in cache
-        StockService._ensure_popular_stocks_cached()
+        # Query all stocks from database with pagination
+        stocks_query = StockCache.query\
+            .order_by(StockCache.ticker)\
+            .paginate(page=page, per_page=per_page, error_out=False)
         
-        # Get tickers for this page
-        start_idx = (page - 1) * per_page
-        end_idx = start_idx + per_page
-        page_stocks = StockService.POPULAR_NYSE_STOCKS[start_idx:end_idx]
-        
-        # Get cached data for these stocks
+        # Get stocks for this page
         stocks = []
-        for stock_info in page_stocks:
-            cached = StockCache.query.filter_by(ticker=stock_info['ticker']).first()
-            if cached:
-                stocks.append(cached.to_dict())
+        for cached_stock in stocks_query.items:
+            # If fetch_data is True and data is stale, update it
+            if fetch_data:
+                time_since_update = datetime.now(timezone.utc) - cached_stock.last_updated.replace(tzinfo=timezone.utc)
+                if time_since_update > timedelta(hours=1):
+                    # Update the stock data
+                    StockService._update_stock_cache(cached_stock.ticker)
+                    # Refresh the object from database
+                    db.session.refresh(cached_stock)
+            
+            stocks.append(cached_stock.to_dict())
         
-        total = len(StockService.POPULAR_NYSE_STOCKS)
-        total_pages = (total + per_page - 1) // per_page
+        total = StockCache.query.count()
+        total_pages = stocks_query.pages
         
         return {
             'stocks': stocks,
@@ -190,22 +195,20 @@ class StockService:
         }
 
     @staticmethod
-    def search_stocks(query, page=1, per_page=20):
+    def search_stocks(query, page=1, per_page=20, fetch_data=False):
         """Search stocks by ticker or company name.
         
         Args:
             query: Search query (ticker or company name)
             page: Page number (1-indexed)
             per_page: Number of stocks per page
+            fetch_data: If True, fetch current data for displayed stocks
             
         Returns:
             Dictionary with 'stocks', 'total', 'page', 'per_page', 'pages'
         """
         if not query:
-            return StockService.get_popular_stocks(page, per_page)
-        
-        # Ensure stocks are cached
-        StockService._ensure_popular_stocks_cached()
+            return StockService.get_popular_stocks(page, per_page, fetch_data)
         
         # Search in cache by ticker or company name
         query_lower = query.lower()
@@ -222,7 +225,20 @@ class StockService:
             .order_by(StockCache.ticker)\
             .paginate(page=page, per_page=per_page, error_out=False)
         
-        stocks = [stock.to_dict() for stock in stocks_query.items]
+        # Get stocks and optionally fetch fresh data
+        stocks = []
+        for cached_stock in stocks_query.items:
+            # If fetch_data is True and data is stale, update it
+            if fetch_data:
+                time_since_update = datetime.now(timezone.utc) - cached_stock.last_updated.replace(tzinfo=timezone.utc)
+                if time_since_update > timedelta(hours=1):
+                    # Update the stock data
+                    StockService._update_stock_cache(cached_stock.ticker)
+                    # Refresh the object from database
+                    db.session.refresh(cached_stock)
+            
+            stocks.append(cached_stock.to_dict())
+        
         total_pages = stocks_query.pages
         
         return {
@@ -235,25 +251,36 @@ class StockService:
         }
 
     @staticmethod
-    def _ensure_popular_stocks_cached():
-        """Ensure all popular stocks are in cache (only adds missing ones)."""
-        for stock_info in StockService.POPULAR_NYSE_STOCKS:
-            ticker = stock_info['ticker']
-            cached = StockCache.query.filter_by(ticker=ticker).first()
-            
-            if not cached:
-                # Add to cache without fetching yet (lazy loading)
-                new_cache = StockCache(
-                    ticker=ticker,
-                    company_name=stock_info['name'],
-                    pe_ratio=None,
-                    price=None,
-                    market_cap=None,
-                    last_updated=datetime.now(timezone.utc) - timedelta(hours=2)  # Mark as stale
-                )
-                db.session.add(new_cache)
+    def add_stock_to_cache(ticker, company_name=None):
+        """Add a stock to the cache without fetching data.
         
+        This is used to populate the database with NYSE stock tickers.
+        Data will be fetched on-demand when the stock is viewed.
+        
+        Args:
+            ticker: Stock ticker symbol
+            company_name: Optional company name
+            
+        Returns:
+            True if added, False if already exists
+        """
+        # Check if stock already exists
+        existing = StockCache.query.filter_by(ticker=ticker).first()
+        if existing:
+            return False
+        
+        # Add to cache without fetching data (lazy loading)
+        new_cache = StockCache(
+            ticker=ticker,
+            company_name=company_name,
+            pe_ratio=None,
+            price=None,
+            market_cap=None,
+            last_updated=datetime.now(timezone.utc) - timedelta(hours=2)  # Mark as stale
+        )
+        db.session.add(new_cache)
         db.session.commit()
+        return True
 
     @staticmethod
     def fetch_stock_data(ticker):
