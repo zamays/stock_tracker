@@ -50,6 +50,7 @@
                 <th>P/E Ratio</th>
                 <th>Market Cap</th>
                 <th>Last Updated</th>
+                <th>Favorite</th>
             </tr>
         </thead>
         <tbody>
@@ -89,6 +90,11 @@
                     {% else %}
                         Never
                     {% endif %}
+                </td>
+                <td>
+                    <button onclick="toggleFavorite('{{ stock.ticker }}')" class="favorite-btn" title="{% if stock.is_favorite %}Remove from favorites{% else %}Add to favorites{% endif %}">
+                        {% if stock.is_favorite %}⭐{% else %}☆{% endif %}
+                    </button>
                 </td>
             </tr>
             {% endfor %}

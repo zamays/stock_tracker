@@ -17,6 +17,7 @@ class Stock(db.Model):
     pe_ratio = db.Column(db.Float, nullable=True)
     price = db.Column(db.Float, nullable=True)
     market_cap = db.Column(db.Float, nullable=True)
+    is_favorite = db.Column(db.Boolean, default=False, nullable=False)
     timestamp = db.Column(
         db.DateTime,
         default=lambda: datetime.now(timezone.utc),
@@ -35,6 +36,7 @@ class Stock(db.Model):
             'pe_ratio': self.pe_ratio,
             'price': self.price,
             'market_cap': self.market_cap,
+            'is_favorite': self.is_favorite,
             'timestamp': self.timestamp.isoformat() if self.timestamp else None
         }
 
@@ -50,6 +52,7 @@ class StockCache(db.Model):
     pe_ratio = db.Column(db.Float, nullable=True)
     price = db.Column(db.Float, nullable=True)
     market_cap = db.Column(db.Float, nullable=True)
+    is_favorite = db.Column(db.Boolean, default=False, nullable=False, index=True)
     last_updated = db.Column(
         db.DateTime,
         default=lambda: datetime.now(timezone.utc),
@@ -69,5 +72,6 @@ class StockCache(db.Model):
             'pe_ratio': self.pe_ratio,
             'price': self.price,
             'market_cap': self.market_cap,
+            'is_favorite': self.is_favorite,
             'last_updated': self.last_updated.isoformat() if self.last_updated else None
         }

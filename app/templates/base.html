@@ -219,6 +219,25 @@
             display: inline-block;
             width: 100px;
         }
+        
+        .favorite-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            transition: transform 0.2s;
+        }
+        
+        .favorite-btn:hover {
+            transform: scale(1.2);
+        }
+        
+        .alert-danger {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -244,6 +263,26 @@
     <footer>
         <p>&copy; 2025 Stock Tracker. For educational purposes only. Not financial advice.</p>
     </footer>
+    
+    <script>
+        // Shared function to toggle favorite status for a stock
+        async function toggleFavorite(ticker) {
+            try {
+                const response = await fetch(`/api/stock/${ticker}/favorite`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    // Reload page to show updated favorites
+                    window.location.reload();
+                } else {
+                    console.error('Failed to toggle favorite');
+                }
+            } catch (error) {
+                console.error('Error toggling favorite:', error);
+            }
+        }
+    </script>
     
     {% block extra_js %}{% endblock %}
 </body>

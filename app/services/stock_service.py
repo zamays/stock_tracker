@@ -15,6 +15,9 @@ class StockService:
     # Rate limiting: track last request time
     _last_request_time = 0
     _min_request_interval = 0.5  # 2 requests per second max
+    
+    # Maximum ticker symbol length for Yahoo Finance search
+    MAX_TICKER_LENGTH = 10
 
     # Popular NYSE stocks to start with
     POPULAR_NYSE_STOCKS = [
@@ -209,6 +212,8 @@ class StockService:
     def search_stocks(query, page=1, per_page=20, fetch_data=False):
         """Search stocks by ticker or company name.
         
+        If no results are found in the cache, attempt to search Yahoo Finance.
+        
         Args:
             query: Search query (ticker or company name)
             page: Page number (1-indexed)
@@ -230,6 +235,36 @@ class StockService:
         
         # Get total count
         total = StockCache.query.filter(search_filter).count()
+        
+        # If no results found in cache, try to fetch from Yahoo Finance
+        if total == 0 and len(query) <= StockService.MAX_TICKER_LENGTH:
+            # Attempt to fetch from Yahoo Finance
+            ticker_upper = query.upper()
+            stock_info = StockService._fetch_stock_info(ticker_upper)
+            
+            if stock_info and stock_info.get('company_name'):
+                # Add to cache
+                new_cache = StockCache(
+                    ticker=ticker_upper,
+                    company_name=stock_info.get('company_name'),
+                    pe_ratio=stock_info.get('pe_ratio'),
+                    price=stock_info.get('price'),
+                    market_cap=stock_info.get('market_cap'),
+                    is_favorite=False,
+                    last_updated=datetime.now(timezone.utc)
+                )
+                db.session.add(new_cache)
+                db.session.commit()
+                
+                # Return the newly added stock
+                return {
+                    'stocks': [new_cache.to_dict()],
+                    'total': 1,
+                    'page': 1,
+                    'per_page': per_page,
+                    'pages': 1,
+                    'query': query
+                }
         
         # Get paginated results
         stocks_query = StockCache.query.filter(search_filter)\
@@ -394,3 +429,41 @@ class StockService:
                 latest_stocks[ticker] = stock.to_dict()
 
         return latest_stocks
+
+    @staticmethod
+    def toggle_favorite(ticker):
+        """Toggle favorite status for a stock.
+        
+        Args:
+            ticker: Stock ticker symbol
+            
+        Returns:
+            Dictionary with 'success' and 'is_favorite' status
+        """
+        # Find stock in cache
+        cached_stock = StockCache.query.filter_by(ticker=ticker).first()
+        
+        if not cached_stock:
+            return {'success': False, 'error': 'Stock not found'}
+        
+        # Toggle favorite status
+        cached_stock.is_favorite = not cached_stock.is_favorite
+        db.session.commit()
+        
+        return {
+            'success': True,
+            'is_favorite': cached_stock.is_favorite
+        }
+
+    @staticmethod
+    def get_favorite_stocks():
+        """Get all favorite stocks.
+        
+        Returns:
+            List of favorite stock dictionaries
+        """
+        favorite_stocks = StockCache.query.filter_by(is_favorite=True)\
+            .order_by(StockCache.ticker)\
+            .all()
+        
+        return [stock.to_dict() for stock in favorite_stocks]
