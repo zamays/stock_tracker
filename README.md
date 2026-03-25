@@ -4,7 +4,7 @@ A web application for tracking stock P/E ratios over time to identify investment
 
 ## Features
 
-- 📊 Track P/E ratios for major stocks (AAPL, MSFT, GOOGL, AMZN, META, TSLA, NVDA, JPM, V, WMT)
+- 📊 Track P/E ratios for major dashboard stocks and explore all bundled NYSE tickers
 - 📈 Visualize P/E ratio trends over time with interactive charts
 - ⚠️ Terminal alerts when P/E ratios fall below user-defined threshold (default: 20)
 - 💾 SQLite (local) or MySQL database backend for historical data storage
@@ -143,6 +143,12 @@ python3
 1. Click on any stock card to view its historical P/E ratio chart
 2. The chart shows trends over time with the threshold line
 3. Historical data table shows all recorded data points
+
+### Exploring NYSE Stocks
+
+1. Open `/stocks` to browse/search bundled NYSE tickers
+2. Click a ticker to open its detail page
+3. Favorites can be toggled directly from the stock explorer table
 
 ### Terminal Alerts
 
