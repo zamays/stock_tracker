@@ -13,6 +13,8 @@ from app.models import db, Stock, StockCache
 class StockService:
     """Service for fetching and storing stock data."""
 
+    INITIAL_CACHE_AGE_HOURS = 2
+
     # Rate limiting: track last request time
     _last_request_time = 0
     _min_request_interval = 0.5  # 2 requests per second max
@@ -101,7 +103,9 @@ class StockService:
                         price=None,
                         market_cap=None,
                         is_favorite=False,
-                        last_updated=datetime.now(timezone.utc) - timedelta(hours=2)
+                        last_updated=datetime.now(timezone.utc) - timedelta(
+                            hours=StockService.INITIAL_CACHE_AGE_HOURS
+                        )
                     )
                 )
                 existing_tickers.add(ticker)
@@ -116,7 +120,9 @@ class StockService:
     @staticmethod
     def stock_exists(ticker):
         """Return True when a ticker exists in the stock cache."""
-        return db.session.query(StockCache.id).filter_by(ticker=ticker).first() is not None
+        return db.session.query(
+            db.exists().where(StockCache.ticker == ticker)
+        ).scalar()
 
     @staticmethod
     def _enforce_rate_limit():
@@ -365,7 +371,9 @@ class StockService:
             pe_ratio=None,
             price=None,
             market_cap=None,
-            last_updated=datetime.now(timezone.utc) - timedelta(hours=2)  # Mark as stale
+            last_updated=datetime.now(timezone.utc) - timedelta(
+                hours=StockService.INITIAL_CACHE_AGE_HOURS
+            )  # Mark as stale
         )
         db.session.add(new_cache)
         db.session.commit()

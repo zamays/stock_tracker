@@ -22,7 +22,9 @@ def create_app(config_class=Config):
     with app.app_context():
         db.create_all()
         from app.services.stock_service import StockService
-        StockService.populate_nyse_cache_from_csv()
+        added = StockService.populate_nyse_cache_from_csv()
+        if added:
+            app.logger.info("Populated %s NYSE tickers into stock cache", added)
 
     # Register routes
     from app import routes
