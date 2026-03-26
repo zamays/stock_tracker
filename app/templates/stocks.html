@@ -56,7 +56,7 @@
         <tbody>
             {% for stock in stocks %}
             <tr>
-                <td><strong>{{ stock.ticker }}</strong></td>
+                <td><strong><a href="/stock/{{ stock.ticker }}">{{ stock.ticker }}</a></strong></td>
                 <td>{{ stock.company_name or 'N/A' }}</td>
                 <td>
                     {% if stock.price %}

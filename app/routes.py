@@ -60,12 +60,12 @@ def init_app(app):
     @app.route('/stock/<ticker>')
     def stock_detail(ticker):
         """Detail page for a specific stock showing P/E ratio over time."""
+        ticker = ticker.upper()
         # Validate ticker symbol (alphanumeric only, max 10 chars)
         if not ticker.isalnum() or len(ticker) > 10:
             return "Invalid ticker symbol", 400
 
-        # Check if ticker is in our tracked list
-        if ticker not in current_app.config['STOCKS_TO_TRACK']:
+        if not StockService.stock_exists(ticker):
             return "Ticker not found", 404
 
         historical_data = StockService.get_historical_pe_data(ticker)
@@ -131,11 +131,12 @@ def init_app(app):
     @app.route('/api/stock/<ticker>/history')
     def api_stock_history(ticker):
         """API endpoint to get historical data for a stock."""
+        ticker = ticker.upper()
         # Validate ticker symbol
         if not ticker.isalnum() or len(ticker) > 10:
             return jsonify({'error': 'Invalid ticker symbol'}), 400
 
-        if ticker not in current_app.config['STOCKS_TO_TRACK']:
+        if not StockService.stock_exists(ticker):
             return jsonify({'error': 'Ticker not found'}), 404
 
         limit = request.args.get('limit', 100, type=int)

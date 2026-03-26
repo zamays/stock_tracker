@@ -1,16 +1,19 @@
 """Stock data service for fetching and storing stock information."""
 
+import csv
 import time
 from datetime import datetime, timedelta, timezone
 
 import yfinance as yf
 
-from app.config import Config
+from app.config import BASE_DIR, Config
 from app.models import db, Stock, StockCache
 
 
 class StockService:
     """Service for fetching and storing stock data."""
+
+    INITIAL_CACHE_AGE_HOURS = 2
 
     # Rate limiting: track last request time
     _last_request_time = 0
@@ -72,6 +75,54 @@ class StockService:
         {'ticker': 'UPS', 'name': 'United Parcel Service'},
         {'ticker': 'MS', 'name': 'Morgan Stanley'},
     ]
+
+    @staticmethod
+    def populate_nyse_cache_from_csv():
+        """Populate stock cache from bundled NYSE ticker CSV."""
+        csv_path = BASE_DIR / 'data' / 'nyse_tickers.csv'
+        if not csv_path.exists():
+            return 0
+
+        existing_tickers = {
+            row[0] for row in db.session.query(StockCache.ticker).all()
+        }
+        stocks_to_add = []
+
+        with open(csv_path, 'r', encoding='utf-8', newline='') as csv_file:
+            reader = csv.DictReader(csv_file)
+            for row in reader:
+                ticker = (row.get('ticker') or '').strip().upper()
+                if not ticker or ticker in existing_tickers:
+                    continue
+
+                stocks_to_add.append(
+                    StockCache(
+                        ticker=ticker,
+                        company_name=(row.get('company_name') or '').strip() or None,
+                        pe_ratio=None,
+                        price=None,
+                        market_cap=None,
+                        is_favorite=False,
+                        last_updated=datetime.now(timezone.utc) - timedelta(
+                            hours=StockService.INITIAL_CACHE_AGE_HOURS
+                        )
+                    )
+                )
+                existing_tickers.add(ticker)
+
+        if not stocks_to_add:
+            return 0
+
+        db.session.bulk_save_objects(stocks_to_add)
+        db.session.commit()
+        return len(stocks_to_add)
+
+    @staticmethod
+    def stock_exists(ticker):
+        """Return True when a ticker exists in the stock cache."""
+        return db.session.query(
+            db.exists().where(StockCache.ticker == ticker)
+        ).scalar()
 
     @staticmethod
     def _enforce_rate_limit():
@@ -320,7 +371,9 @@ class StockService:
             pe_ratio=None,
             price=None,
             market_cap=None,
-            last_updated=datetime.now(timezone.utc) - timedelta(hours=2)  # Mark as stale
+            last_updated=datetime.now(timezone.utc) - timedelta(
+                hours=StockService.INITIAL_CACHE_AGE_HOURS
+            )  # Mark as stale
         )
         db.session.add(new_cache)
         db.session.commit()
